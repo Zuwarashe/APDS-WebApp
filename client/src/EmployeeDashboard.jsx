@@ -26,16 +26,16 @@ function EmployeeDashboard() {
     setSelectedTransaction(transaction);
   };
 
- const handleVerifyTransaction = (transactionId) => {
+  const handleVerifyTransaction = (transactionId) => {
     if (!transactionId) {
-        console.error("No transaction ID provided");
-        return;
+      console.error("No transaction ID provided");
+      return;
     }
-    
-    navigate('/payment-verification', { 
-        state: { transactionId: transactionId.toString() } 
+
+    navigate('/payment-verification', {
+      state: { transactionId: transactionId.toString() }
     });
-};
+  };
 
   return (
     <div>
@@ -73,16 +73,14 @@ function EmployeeDashboard() {
                 <td>{transaction.status}</td>
                 <td>
                   {transaction.status === 'Pending' && (
-                    <>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent row click when clicking the button
-                          handleVerifyTransaction(transaction._id); // Navigate to verify
-                        }}
-                      >
-                        Verify
-                      </button>
-                    </>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent row click when clicking the button
+                        handleVerifyTransaction(transaction._id); // Navigate to verify
+                      }}
+                    >
+                      Verify
+                    </button>
                   )}
                 </td>
               </tr>
