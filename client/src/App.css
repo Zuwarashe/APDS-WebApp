@@ -105,57 +105,55 @@ button:hover {
 }
 
 .homepage-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background-color: #f8f9fa; /* Light background */
     text-align: center;
-    background-color: #ffffff;
-    padding: 3rem 2rem;
-    border-radius: 10px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-    max-width: 400px;
-    width: 120%;
-}
-
-/* Welcome Text */
-.homepage-container h1 {
-    color: #102a43;
-    font-weight: 700;
-    font-size: 2rem;
-    margin-bottom: 1rem;
-}
-
-/* Subtitle */
-.homepage-container p {
-    color: #627d98;
+    padding: 20px;
+  }
+  
+  /* Heading styles */
+  .homepage-container h1 {
+    font-size: 3rem;
+    color: #343a40; /* Dark grey color */
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Subheading paragraph styles */
+  .homepage-container p {
+    font-size: 1.2rem;
+    color: #6c757d; /* Light grey color */
+    margin-bottom: 2rem;
+  }
+  
+  /* Button styling */
+  .homepage-container .btn {
     font-size: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-/* Button Styling */
-.homepage-container .btn-primary {
-    background-color: #3f72af;
-    border: none;
-    color: #ffffff;
-    font-weight: 600;
-    padding: 0.75rem 1.5rem;
-    border-radius: 5px;
-    margin-right: 0.5rem;
-    transition: background-color 0.3s ease;
-}
-
-.homepage-container .btn-primary:hover {
-    background-color: #295182;
-}
-
-.homepage-container .btn-secondary {
-    background-color: #627d98;
-    border: none;
-    color: #ffffff;
-    font-weight: 600;
-    padding: 0.75rem 1.5rem;
-    border-radius: 5px;
-    transition: background-color 0.3s ease;
-}
-
-.homepage-container .btn-secondary:hover {
-    background-color: #4a667a;
-}
-
+    padding: 10px 20px;
+    margin: 0 10px;
+  }
+  
+  /* Primary button (Register) */
+  .homepage-container .btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+  }
+  
+  .homepage-container .btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+  }
+  
+  /* Secondary button (Login) */
+  .homepage-container .btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+  }
+  
+  .homepage-container .btn-secondary:hover {
+    background-color: #5a6268;
+    border-color: #5a6268;
+  }
