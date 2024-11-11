@@ -26,10 +26,16 @@ function EmployeeDashboard() {
     setSelectedTransaction(transaction);
   };
 
-  // Navigate to the Payment Verification page for the selected transaction
-  const handleVerifyTransaction = (transactionId) => {
-    navigate('/payment-verification', { state: { transactionId } }); // Pass the transaction ID to the verification page
-  };
+ const handleVerifyTransaction = (transactionId) => {
+    if (!transactionId) {
+        console.error("No transaction ID provided");
+        return;
+    }
+    
+    navigate('/payment-verification', { 
+        state: { transactionId: transactionId.toString() } 
+    });
+};
 
   return (
     <div>

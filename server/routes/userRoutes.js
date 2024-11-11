@@ -196,11 +196,30 @@ router.get('/payments', async (req, res) => {
   });
 
   // Get a specific transaction by ID
-router.get("/transactions/:id", (req, res) => {
-    const { id } = req.params;
-    Transaction.findById(id)
-        .then(transaction => res.json(transaction))
-        .catch(error => res.status(500).json({ message: "Error fetching transaction", error }));
+  router.get("/api/transactions/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const transaction = await Payment.findById(id);  // Using Payment model instead of Transaction
+        
+        if (!transaction) {
+            return res.status(404).json({ message: "Transaction not found" });
+        }
+        
+        res.json(transaction);
+    } catch (error) {
+        console.error("Error fetching transaction:", error);
+        res.status(500).json({ message: "Error fetching transaction", error: error.message });
+    }
+});
+
+router.get('/api/transactions/pending', async (req, res) => {
+    try {
+        const pendingPayments = await Payment.find({ status: 'Pending' });
+        res.json(pendingPayments);
+    } catch (error) {
+        console.error('Error fetching pending transactions:', error);
+        res.status(500).json({ message: 'Error fetching pending transactions', error: error.message });
+    }
 });
 
 

@@ -1,205 +1,133 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import axios from 'axios';
+import { useLocation } from 'react-router-dom';
 
-const PaymentVerification = () => {
-  const [transactions, setTransactions] = useState([]);
-  const [error, setError] = useState("");
-  const [rejectionReason, setRejectionReason] = useState("");
-  const [selectedTransaction, setSelectedTransaction] = useState(null);
-  const [loading, setLoading] = useState(false);
+function PaymentVerification() {
+    const [transactions, setTransactions] = useState([]);
+    const [error, setError] = useState("");
+    const [rejectionReason, setRejectionReason] = useState("");
+    const [selectedTransaction, setSelectedTransaction] = useState(null);
 
-  // Fetch all pending transactions initially
-  useEffect(() => {
-    fetchPendingTransactions();
-  }, []);
+    const location = useLocation();
+    const { transactionId } = location.state || {}; // Get transaction ID passed from EmployeeDashboard
 
-  const fetchPendingTransactions = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch("http://localhost:5000/api/transactions/pending");
-      const data = await response.json();
-      setTransactions(data);
-    } catch (err) {
-      setError("Error fetching transactions");
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Fetch all pending transactions initially
+    useEffect(() => {
+        if (transactionId) {
+            fetchTransaction(transactionId); // Fetch the selected transaction details
+        } else {
+            // If no specific transaction, fetch all pending transactions
+            axios.get("http://localhost:5000/api/payments")
+                .then(response => setTransactions(response.data))
+                .catch(error => {
+                    console.error("Error fetching transactions:", error);
+                    setError(error.response?.data?.message || "Error fetching transactions");
+                });
+        }
+    }, [transactionId]);
 
-  const fetchTransaction = async (transactionId) => {
-    setLoading(true);
-    try {
-      const response = await fetch(`http://localhost:5000/api/transactions/${transactionId}`);
-      const data = await response.json();
-      setSelectedTransaction(data);
-    } catch (err) {
-      setError("Error fetching transaction details");
-    } finally {
-      setLoading(false);
-    }
-  };
+    const fetchTransaction = (transactionId) => {
+        axios.get(`http://localhost:5000/api/transactions/${transactionId}`)
+            .then(response => {
+                if (response.data) {
+                    setSelectedTransaction(response.data);
+                    setError(""); // Clear any existing errors
+                } else {
+                    setError("Transaction not found");
+                }
+            })
+            .catch(error => {
+                console.error("Error fetching transaction details:", error);
+                setError(error.response?.data?.message || "Error fetching transaction details");
+            });
+    };
+    
+    const verifyField = (transactionId, field) => {
+        axios.post("http://localhost:5000/api/transactions/verify", {
+            transactionId,
+            field,
+            isVerified: true
+        })
+            .then(() => {
+                // After verification, refetch the updated transaction details
+                fetchTransaction(transactionId);
+            })
+            .catch(error => setError("Error verifying field"));
+    };
 
-  const verifyField = async (transactionId, field) => {
-    try {
-      await fetch("http://localhost:5000/api/transactions/verify", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          transactionId,
-          field,
-          isVerified: true,
-        }),
-      });
-      await fetchTransaction(transactionId);
-    } catch (err) {
-      setError("Error verifying field");
-    }
-  };
+    const submitToSwift = (transactionId) => {
+        axios.post("http://localhost:5000/api/transactions/submit-to-swift", { transactionId })
+            .then(() => alert("Transaction submitted to SWIFT"))
+            .catch(error => setError("Error submitting transaction to SWIFT"));
+    };
 
-  const submitToSwift = async (transactionId) => {
-    try {
-      await fetch("http://localhost:5000/api/transactions/submit-to-swift", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ transactionId }),
-      });
-      alert("Transaction submitted to SWIFT");
-      // Refresh the transactions list after submission
-      fetchPendingTransactions();
-      setSelectedTransaction(null);
-    } catch (err) {
-      setError("Error submitting transaction to SWIFT");
-    }
-  };
+    const rejectTransaction = (transactionId) => {
+        axios.post("http://localhost:5000/api/transactions/reject", {
+            transactionId,
+            reason: rejectionReason
+        })
+            .then(() => {
+                setTransactions(prev => prev.filter(trans => trans._id !== transactionId));
+                alert("Transaction rejected");
+            })
+            .catch(error => setError("Error rejecting transaction"));
+    };
 
-  const rejectTransaction = async (transactionId) => {
-    if (!rejectionReason) {
-      setError("Please provide a rejection reason");
-      return;
-    }
+    return (
+        <div>
+            <h2>Bank Employee Verification</h2>
+            {error && <p className="text-danger">{error}</p>}
+            
+            {selectedTransaction ? (
+                <div key={selectedTransaction._id} className="transaction-card">
+                    <p><strong>Recipient Name:</strong> {selectedTransaction.recipientName}</p>
+                    <button onClick={() => verifyField(selectedTransaction._id, "recipientName")}>Verify</button>
 
-    try {
-      await fetch("http://localhost:5000/api/transactions/reject", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          transactionId,
-          reason: rejectionReason,
-        }),
-      });
-      setTransactions(prev => prev.filter(trans => trans._id !== transactionId));
-      setSelectedTransaction(null);
-      setRejectionReason("");
-      alert("Transaction rejected successfully");
-    } catch (err) {
-      setError("Error rejecting transaction");
-    }
-  };
+                    <p><strong>Recipient Bank:</strong> {selectedTransaction.recipientBank}</p>
+                    <button onClick={() => verifyField(selectedTransaction._id, "recipientBank")}>Verify</button>
 
-  const renderVerificationField = (label, value, field) => (
-    <div className="flex items-center justify-between mb-4 p-2 bg-gray-50 rounded">
-      <div>
-        <p className="font-medium">{label}</p>
-        <p className="text-gray-600">{value}</p>
-      </div>
-      <Button
-        onClick={() => verifyField(selectedTransaction._id, field)}
-        variant={selectedTransaction.verifications[field] ? "outline" : "default"}
-        className="ml-4"
-      >
-        {selectedTransaction.verifications[field] ? "Verified ✓" : "Verify"}
-      </Button>
-    </div>
-  );
+                    <p><strong>Account Number:</strong> {selectedTransaction.recipientAccountNumber}</p>
+                    <button onClick={() => verifyField(selectedTransaction._id, "recipientAccountNumber")}>Verify</button>
 
-  if (loading) {
-    return <div className="text-center p-4">Loading...</div>;
-  }
+                    <p><strong>Amount:</strong> {selectedTransaction.amount}</p>
+                    <button onClick={() => verifyField(selectedTransaction._id, "amount")}>Verify</button>
 
-  return (
-    <div className="max-w-4xl mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-6">Bank Employee Verification</h2>
-      
-      {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      
-      {selectedTransaction ? (
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <h3 className="text-xl font-semibold">Transaction Details</h3>
-              <Button variant="outline" onClick={() => setSelectedTransaction(null)}>
-                Back to List
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {renderVerificationField("Recipient Name", selectedTransaction.recipientName, "recipientName")}
-            {renderVerificationField("Recipient Bank", selectedTransaction.recipientBank, "recipientBank")}
-            {renderVerificationField("Account Number", selectedTransaction.recipientAccountNumber, "recipientAccountNumber")}
-            {renderVerificationField("Amount", selectedTransaction.amount, "amount")}
-            {renderVerificationField("SWIFT Code", selectedTransaction.swiftCode, "swiftCode")}
+                    <p><strong>SWIFT Code:</strong> {selectedTransaction.swiftCode}</p>
+                    <button onClick={() => verifyField(selectedTransaction._id, "swiftCode")}>Verify</button>
 
-            <div className="mt-6 space-y-4">
-              <Button
-                onClick={() => submitToSwift(selectedTransaction._id)}
-                disabled={!Object.values(selectedTransaction.verifications).every(v => v)}
-                className="w-full"
-              >
-                Submit to SWIFT
-              </Button>
+                    <button
+                        onClick={() => submitToSwift(selectedTransaction._id)}
+                        disabled={!Object.values(selectedTransaction.verifications).every(v => v)}
+                        className="btn btn-primary mt-2">
+                        Submit
+                    </button>
 
-              <div className="space-y-2">
-                <Input
-                  type="text"
-                  placeholder="Enter rejection reason"
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                />
-                <Button
-                  variant="destructive"
-                  onClick={() => rejectTransaction(selectedTransaction._id)}
-                  className="w-full"
-                >
-                  Reject Transaction
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4">
-          {transactions.map(transaction => (
-            <Card key={transaction._id} className="cursor-pointer hover:shadow-lg transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium">Recipient: {transaction.recipientName}</p>
-                    <p className="text-sm text-gray-500">Amount: {transaction.amount}</p>
-                  </div>
-                  <Button onClick={() => fetchTransaction(transaction._id)}>
-                    View & Verify
-                  </Button>
+                    <div className="rejection-section">
+                        <input
+                            type="text"
+                            placeholder="Rejection reason"
+                            value={rejectionReason}
+                            onChange={(e) => setRejectionReason(e.target.value)}
+                        />
+                        <button
+                            onClick={() => rejectTransaction(selectedTransaction._id)}
+                            className="btn btn-danger mt-2">
+                            Reject
+                        </button>
+                    </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+            ) : (
+                transactions.map(transaction => (
+                    <div key={transaction._id} className="transaction-card">
+                        <p><strong>Recipient Name:</strong> {transaction.recipientName}</p>
+                        <button onClick={() => fetchTransaction(transaction._id)}>
+                            View & Verify
+                        </button>
+                    </div>
+                ))
+            )}
         </div>
-      )}
-    </div>
-  );
-};
+    );
+}
 
 export default PaymentVerification;
