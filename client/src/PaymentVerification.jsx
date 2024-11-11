@@ -16,8 +16,8 @@ function PaymentVerification() {
         if (transactionId) {
             fetchTransaction(transactionId); // Fetch the selected transaction details
         } else {
-            // If no specific transaction, fetch all pending transactions
-            axios.get("http://localhost:5000/api/payments")
+            // If no specific transaction, fetch all transactions
+            axios.get("http://localhost:5000/api/transactions") // Corrected URL for fetching transactions
                 .then(response => setTransactions(response.data))
                 .catch(error => {
                     console.error("Error fetching transactions:", error);
@@ -27,6 +27,11 @@ function PaymentVerification() {
     }, [transactionId]);
 
     const fetchTransaction = (transactionId) => {
+        if (!transactionId) {
+            setError("Invalid transaction ID.");
+            return;
+        }
+
         axios.get(`http://localhost:5000/api/transactions/${transactionId}`)
             .then(response => {
                 if (response.data) {
@@ -41,7 +46,7 @@ function PaymentVerification() {
                 setError(error.response?.data?.message || "Error fetching transaction details");
             });
     };
-    
+
     const verifyField = (transactionId, field) => {
         axios.post("http://localhost:5000/api/transactions/verify", {
             transactionId,

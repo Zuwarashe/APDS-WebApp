@@ -1,3 +1,5 @@
+// Assuming your express app and other configurations are correct
+
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
@@ -32,7 +34,7 @@ router.post('/signup', async (req, res) => {
     const { firstName, lastName, email, username, idNumber, accountNumber, password} = req.body;
     console.log("Received signup request:", req.body);
 
-//-------------Adding input validation
+    //-------------Adding input validation
     if (!emailRegex.test(email)) {
         return res.status(400).json({ error: 'Invalid email format' });
     }  
@@ -45,13 +47,15 @@ router.post('/signup', async (req, res) => {
     if (!passwordRegex.test(password)) {
         return res.status(400).json({ error: 'Password must be at least 8 characters long and contain at least one letter and one number' });
     }     
-//=============END: Adding input validation    
+    //=============END: Adding input validation    
+
     try {
         // Check if the account number is unique
         const existingUser = await User.findOne({ accountNumber });
         if (existingUser) {
             return res.status(400).json({ error: 'Account number already exists' });
         }
+        
          // Hash password
          const salt = await bcrypt.genSalt(10);
          const hashedPassword = await bcrypt.hash(password, salt);
@@ -67,14 +71,13 @@ router.post('/signup', async (req, res) => {
         });
         await newUser.save();
         
-        //res.status(201).json({ message: 'User registered successfully' });
-        res.status(201).json({ message: 'User registered successfully', userId: savedUser._id });
+        res.status(201).json({ message: 'User registered successfully', userId: newUser._id });
     } catch (err) {
         console.error("Error saving user:", err);
         res.status(500).json({ error: 'Error registering user' });
     }
 });
-//==============================END POST request to handle signup
+
 //-------------------------------POST request to handle login
 router.post('/login', async (req, res) => {
     const { identifier, password } = req.body;
@@ -109,9 +112,7 @@ router.post('/login', async (req, res) => {
     }
 });
 
-//========================================END: POST request to handle login
-
-//---------- Payment 
+//======================================== Payment 
 router.post('/payment', async (req, res) => {
     const {  recipientName, recipientBank, recipientAccount, amount, swiftCode  } = req.body;
 
@@ -148,9 +149,6 @@ router.post('/payment', async (req, res) => {
         console.error(error);
         res.status(500).json({ message: 'Error recording payment', error });
     }
-
-
-
 });
 
 //============END: Payment 
@@ -166,7 +164,7 @@ router.post('/check-user', async (req, res) => {
         if (accountNumber) {
             user = await User.findOne({ accountNumber });
         } else if (username ) {
-            user = await User.findById(username );
+            user = await User.findOne({ username });
         }
 
         // Respond accordingly
@@ -181,22 +179,22 @@ router.post('/check-user', async (req, res) => {
     }
 });
 
-// userRoute.js
+// Get all payments
 router.get('/payments', async (req, res) => {
     try {
-      // Fetch all payments using the Payment model
-      const allPayments = await Payment.find();
-  
-      // Respond with the list of payments
-      res.json(allPayments);  
-    } catch (error) {
-      console.error('Error fetching payments:', error);
-      res.status(500).json({ message: 'Error fetching payments', error });
-    }
-  });
+        // Fetch all payments using the Payment model
+        const allPayments = await Payment.find();
 
-  // Get a specific transaction by ID
-  router.get("/api/transactions/:id", async (req, res) => {
+        // Respond with the list of payments
+        res.json(allPayments);  
+    } catch (error) {
+        console.error('Error fetching payments:', error);
+        res.status(500).json({ message: 'Error fetching payments', error });
+    }
+});
+
+// Get a specific transaction by ID (fixed route)
+router.get('/transactions/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const transaction = await Payment.findById(id);  // Using Payment model instead of Transaction
@@ -212,7 +210,8 @@ router.get('/payments', async (req, res) => {
     }
 });
 
-router.get('/api/transactions/pending', async (req, res) => {
+// Get pending payments
+router.get('/transactions/pending', async (req, res) => {
     try {
         const pendingPayments = await Payment.find({ status: 'Pending' });
         res.json(pendingPayments);
@@ -222,7 +221,4 @@ router.get('/api/transactions/pending', async (req, res) => {
     }
 });
 
-
 module.exports = router;
-
-
