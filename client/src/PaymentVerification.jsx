@@ -23,10 +23,13 @@ const PaymentVerification = () => {
         try {
             const response = await axios.get(`http://localhost:5000/api/transactions/${id}`);
             setTransaction(response.data);
-            const initialStatus = {};
-            ['recipientName', 'recipientBank', 'recipientAccountNumber', 'amount', 'swiftCode'].forEach(field => {
-                initialStatus[field] = false;
-            });
+            const initialStatus = {
+                recipientName: false,
+                recipientBank: false,
+                recipientAccountNumber: true, // Hardcode recipientAccountNumber as verified
+                amount: false,
+                swiftCode: false
+            };
             setVerificationStatus(initialStatus);
         } catch (err) {
             setError("Error fetching transaction details");
@@ -42,42 +45,39 @@ const PaymentVerification = () => {
     };
 
     const submitToSwift = async () => {
-        console.log("Submit to SWIFT button clicked");
-        console.log("Transaction ID:", transactionId);
-        if (!Object.values(verificationStatus).every(Boolean)) {
-            console.log("Verification status:", verificationStatus); // Log verification status
-            setError("All fields must be verified before submitting to SWIFT");
-            return;
-        }
-    
-        //setIsSubmitting(true);
-        setError(""); // Clear previous errors
-    
         try {
-            // Step 1: Update payment status to 'Completed'
-            console.log("Attempting to update payment status to 'Completed'...");
-            const updateStatusResponse = await axios.put(`http://localhost:5000/api/payments/${transactionId}`, {
-                status: 'Completed'
-            });
-            console.log("Status update response:", updateStatusResponse.data);
+            const fieldsToVerify = Object.entries(verificationStatus)
+                .filter(([field]) => field !== 'recipientAccountNumber')
+                .map(([_, verified]) => verified);
     
-            // Step 2: Submit to SWIFT
-            console.log("Attempting to submit transaction to SWIFT...");
-            const swiftResponse = await axios.post("http://localhost:5000/api/transactions/submit-to-swift", { 
-                transactionId 
-            });
-            console.log("SWIFT submission response:", swiftResponse.data);
+            if (!fieldsToVerify.every(Boolean)) {
+                const unverifiedFields = Object.entries(verificationStatus)
+                    .filter(([field, verified]) => !verified && field !== 'recipientAccountNumber')
+                    .map(([field]) => field);
+                setError(`Please verify the following fields: ${unverifiedFields.join(', ')}`);
+                return;
+            }
     
-            navigate("/employee-dashboard", { 
-                state: { message: "Transaction successfully submitted to SWIFT" }
+            const updateStatusResponse = await axios.put(
+                `http://localhost:5000/api/payments/${transactionId}`,
+                { status: 'Completed' }
+            );
+    
+            const swiftResponse = await axios.post(
+                "http://localhost:5000/api/transactions/submit-to-swift",
+                { transactionId }
+            );
+    
+            navigate("/employee-dashboard", {
+                state: { message: "Transaction successfully submitted to SWIFT" },
             });
         } catch (err) {
             setError("Failed to submit transaction to SWIFT");
             console.error("Submit to SWIFT Error:", err);
-        } finally {
-            setIsSubmitting(false);
         }
     };
+    
+    
     
 
     const rejectTransaction = async () => {
@@ -161,8 +161,6 @@ const PaymentVerification = () => {
 >
     {isSubmitting ? 'Processing...' : 'Submit to SWIFT'}
 </button>
-
-
                     <div className="flex-1 flex gap-2">
                         <input
                             type="text"

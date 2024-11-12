@@ -4,6 +4,9 @@ const router = express.Router();
 const Payment = require('../models/Payment');
 const authenticateEmployee = require('../middleware/authenticateEmployee');
 
+app.use('/api/payments', paymentRoutes);
+
+
 // Get all transactions
 router.get('/transactions', authenticateEmployee, async (req, res) => {
     try {
