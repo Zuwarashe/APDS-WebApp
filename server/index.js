@@ -41,6 +41,10 @@ app.use('/api', userRoutes);
 const employeeRoutes = require('./routes/employeeRoute');
 app.use('/api/employees', employeeRoutes);
 
+const paymentRoutes = require('./routes/paymentRoutes');
+app.use('/api/payments', paymentRoutes);
+
+
 const port = process.env.PORT || 5000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
 

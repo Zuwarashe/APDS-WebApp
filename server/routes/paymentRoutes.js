@@ -4,8 +4,6 @@ const router = express.Router();
 const Payment = require('../models/Payment');
 const authenticateEmployee = require('../middleware/authenticateEmployee');
 
-app.use('/api/payments', paymentRoutes);
-
 
 // Get all transactions
 router.get('/transactions', authenticateEmployee, async (req, res) => {
@@ -72,42 +70,50 @@ router.put('/payments/:id', authenticateEmployee, async (req, res) => {
 });
 
 // Submit to SWIFT
-router.post('/transactions/submit-to-swift', authenticateEmployee, async (req, res) => {
+router.put('/payments/:id/submit-to-swift', async (req, res) => {
     try {
-        const { transactionId } = req.body;
-
-        // First, verify the transaction exists and is in a valid state
-        const transaction = await Payment.findById(transactionId);
+        const { id } = req.params; // Payment ID from URL
+        const transaction = await Payment.findById(id);
         
         if (!transaction) {
             return res.status(404).json({ message: 'Transaction not found' });
         }
 
+        // Ensure the payment is in 'Pending' status before submission
         if (transaction.status !== 'Pending') {
-            return res.status(400).json({ 
-                message: 'Transaction cannot be submitted to SWIFT - invalid status' 
+            return res.status(400).json({
+                message: 'Transaction cannot be submitted to SWIFT - invalid status'
             });
         }
 
-        // Here you would typically integrate with the SWIFT system
-        // This is a placeholder for the SWIFT submission logic
+        // Check if all necessary fields are verified (except 'recipientAccountNumber')
+        const fieldsToVerify = ['recipientName', 'recipientBank', 'amount', 'swiftCode'];
+        const unverifiedFields = fieldsToVerify.filter(field => !transaction.verifications[field]?.verified);
+
+        if (unverifiedFields.length > 0) {
+            return res.status(400).json({
+                message: `Please verify the following fields: ${unverifiedFields.join(', ')}`
+            });
+        }
+
+        // Simulate SWIFT submission
         try {
-            // Mock SWIFT submission
-            const swiftSubmissionResult = await submitToSwiftSystem(transaction);
-            
-            // Update transaction status to completed
+            const swiftResponse = await submitToSwiftSystem(transaction);
+
+            // Update payment status to 'Completed' after successful submission
             transaction.status = 'Completed';
-            transaction.swiftReference = swiftSubmissionResult.referenceNumber;
+            transaction.swiftReference = swiftResponse.referenceNumber;
             transaction.completedAt = new Date();
             await transaction.save();
 
-            res.json({ 
-                message: 'Transaction successfully submitted to SWIFT',
-                swiftReference: swiftSubmissionResult.referenceNumber
+            res.json({
+                message: 'Transaction successfully submitted to SWIFT and status updated to Completed',
+                swiftReference: swiftResponse.referenceNumber
             });
+
         } catch (swiftError) {
             console.error('SWIFT submission error:', swiftError);
-            return res.status(500).json({ 
+            return res.status(500).json({
                 message: 'Error submitting to SWIFT system',
                 error: swiftError.message
             });

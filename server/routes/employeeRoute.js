@@ -4,6 +4,8 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Employee = require('../models/Employee');
+const authenticateEmployee = require('../middleware/authenticateEmployee');
+
 
 // Employee login route
 // routes/employeeRoutes.js
@@ -60,7 +62,7 @@ router.get('/profile', authenticateEmployee, async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
-
+/*
 // Middleware to authenticate employee
 function authenticateEmployee(req, res, next) {
     const token = req.header('x-auth-token');
@@ -76,5 +78,6 @@ function authenticateEmployee(req, res, next) {
         res.status(401).json({ message: 'Token is not valid' });
     }
 }
+*/
 
 module.exports = router;

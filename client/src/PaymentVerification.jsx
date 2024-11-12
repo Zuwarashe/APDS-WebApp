@@ -46,6 +46,7 @@ const PaymentVerification = () => {
 
     const submitToSwift = async () => {
         try {
+            // Check that all fields except 'recipientAccountNumber' are verified
             const fieldsToVerify = Object.entries(verificationStatus)
                 .filter(([field]) => field !== 'recipientAccountNumber')
                 .map(([_, verified]) => verified);
@@ -58,28 +59,37 @@ const PaymentVerification = () => {
                 return;
             }
     
-            const updateStatusResponse = await axios.put(
-                `http://localhost:5000/api/payments/${transactionId}`,
-                { status: 'Completed' }
-            );
+            // Retrieve the token from local storage or your token storage location
+            const token = localStorage.getItem('token');
     
-            const swiftResponse = await axios.post(
-                "http://localhost:5000/api/transactions/submit-to-swift",
-                { transactionId }
-            );
+            // Update payment status and submit to SWIFT in one PUT request
+            try {
+                const response = await axios.put(
+                    `http://localhost:5000/api/payments/${transactionId}/submit-to-swift`, // One endpoint for both actions
+                    {}, // No body needed, all handled in backend
+                    {
+                        headers: {
+                            'x-auth-token': token, // Add token in headers
+                        },
+                    }
+                );
     
-            navigate("/employee-dashboard", {
-                state: { message: "Transaction successfully submitted to SWIFT" },
-            });
+                if (response.status === 200) {
+                    // Navigate to the employee dashboard with a success message
+                    navigate("/employee-dashboard", {
+                        state: { message: "Transaction successfully submitted to SWIFT" },
+                    });
+                }
+            } catch (error) {
+                console.error('Submit to SWIFT Error:', error);
+                setError("Failed to submit transaction to SWIFT");
+            }
         } catch (err) {
-            setError("Failed to submit transaction to SWIFT");
-            console.error("Submit to SWIFT Error:", err);
+            console.error('Submit to SWIFT Error:', err);
+            setError('Failed to submit transaction to SWIFT');
         }
     };
     
-    
-    
-
     const rejectTransaction = async () => {
         if (!rejectionReason.trim()) {
             setError("Please provide a reason for rejection");
