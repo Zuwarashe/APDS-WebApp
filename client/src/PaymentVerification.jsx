@@ -23,19 +23,17 @@ const PaymentVerification = () => {
         try {
             const response = await axios.get(`http://localhost:5000/api/transactions/${id}`);
             setTransaction(response.data);
-            // Initialize verification status
             const initialStatus = {};
             ['recipientName', 'recipientBank', 'recipientAccountNumber', 'amount', 'swiftCode'].forEach(field => {
                 initialStatus[field] = false;
             });
             setVerificationStatus(initialStatus);
         } catch (err) {
-            console.error('Fetch error:', err);
-            setError("Error fetching transaction details: " + (err.response?.data?.message || err.message));
+            setError("Error fetching transaction details");
+            console.error("Fetch Transaction Error:", err);
         }
     };
 
-    // Simple verification - just mark field as verified (green)
     const verifyField = (field) => {
         setVerificationStatus(prev => ({
             ...prev,
@@ -44,37 +42,43 @@ const PaymentVerification = () => {
     };
 
     const submitToSwift = async () => {
+        console.log("Submit to SWIFT button clicked");
+        console.log("Transaction ID:", transactionId);
         if (!Object.values(verificationStatus).every(Boolean)) {
+            console.log("Verification status:", verificationStatus); // Log verification status
             setError("All fields must be verified before submitting to SWIFT");
             return;
         }
-
-        setIsSubmitting(true);
-        setError("");  // Clear any previous errors
-
+    
+        //setIsSubmitting(true);
+        setError(""); // Clear previous errors
+    
         try {
-            // First submit to SWIFT
+            // Step 1: Update payment status to 'Completed'
+            console.log("Attempting to update payment status to 'Completed'...");
+            const updateStatusResponse = await axios.put(`http://localhost:5000/api/payments/${transactionId}`, {
+                status: 'Completed'
+            });
+            console.log("Status update response:", updateStatusResponse.data);
+    
+            // Step 2: Submit to SWIFT
+            console.log("Attempting to submit transaction to SWIFT...");
             const swiftResponse = await axios.post("http://localhost:5000/api/transactions/submit-to-swift", { 
                 transactionId 
             });
-            
-            if (swiftResponse.data.success) {
-                navigate("/employee-dashboard", { 
-                    state: { 
-                        message: "Transaction successfully submitted to SWIFT",
-                        swiftReference: swiftResponse.data.swiftReference 
-                    }
-                });
-            } else {
-                throw new Error("SWIFT submission failed");
-            }
+            console.log("SWIFT submission response:", swiftResponse.data);
+    
+            navigate("/employee-dashboard", { 
+                state: { message: "Transaction successfully submitted to SWIFT" }
+            });
         } catch (err) {
-            console.error('Submission error:', err);
-            setError("Failed to submit transaction: " + (err.response?.data?.message || err.message));
+            setError("Failed to submit transaction to SWIFT");
+            console.error("Submit to SWIFT Error:", err);
         } finally {
             setIsSubmitting(false);
         }
     };
+    
 
     const rejectTransaction = async () => {
         if (!rejectionReason.trim()) {
@@ -83,17 +87,18 @@ const PaymentVerification = () => {
         }
 
         try {
-            await axios.put(`http://localhost:5000/api/payments/${transactionId}`, {
+            const rejectResponse = await axios.put(`http://localhost:5000/api/payments/${transactionId}`, {
                 status: 'Rejected',
                 rejectionReason: rejectionReason
             });
-            
+            console.log("Reject response:", rejectResponse.data);
+
             navigate("/employee-dashboard", { 
                 state: { message: "Transaction rejected successfully" }
             });
         } catch (err) {
-            console.error('Rejection error:', err);
-            setError("Failed to reject transaction: " + (err.response?.data?.message || err.message));
+            setError("Failed to reject transaction");
+            console.error("Reject Transaction Error:", err);
         }
     };
 
@@ -149,17 +154,14 @@ const PaymentVerification = () => {
                 </div>
 
                 <div className="flex gap-4 mt-6 pt-6 border-t">
-                    <button
-                        onClick={submitToSwift}
-                        disabled={!isAllVerified || isSubmitting}
-                        className={`flex-1 py-2 px-4 rounded transition-colors ${
-                            isAllVerified && !isSubmitting
-                                ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        }`}
-                    >
-                        {isSubmitting ? 'Processing...' : 'Submit to SWIFT'}
-                    </button>
+                <button
+    onClick={submitToSwift}
+    // Temporarily remove the `disabled` attribute to test if the button is disabled
+    className="flex-1 py-2 px-4 rounded bg-blue-500 hover:bg-blue-600 text-white transition-colors"
+>
+    {isSubmitting ? 'Processing...' : 'Submit to SWIFT'}
+</button>
+
 
                     <div className="flex-1 flex gap-2">
                         <input
