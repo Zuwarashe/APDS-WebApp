@@ -6,9 +6,9 @@ const PaymentVerification = () => {
     const [transaction, setTransaction] = useState(null);
     const [verificationStatus, setVerificationStatus] = useState({});
     const [error, setError] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [rejectionReason, setRejectionReason] = useState("");
-    
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const location = useLocation();
     const navigate = useNavigate();
     const { transactionId } = location.state || {};
@@ -21,12 +21,13 @@ const PaymentVerification = () => {
 
     const fetchTransaction = async (id) => {
         try {
+            // Using the correct endpoint as defined in routes
             const response = await axios.get(`http://localhost:5000/api/transactions/${id}`);
             setTransaction(response.data);
             const initialStatus = {
                 recipientName: false,
                 recipientBank: false,
-                recipientAccountNumber: true, // Hardcode recipientAccountNumber as verified
+                recipientAccountNumber: true, 
                 amount: false,
                 swiftCode: false
             };
@@ -44,52 +45,54 @@ const PaymentVerification = () => {
         }));
     };
 
-    const submitToSwift = async () => {
+    const submitToSwift = async () => { 
+        // Check if all fields are verified
+        const allFieldsVerified = Object.values(verificationStatus).every(status => status);
+    
+        if (!allFieldsVerified) {
+            setError("Please verify all fields before submitting to SWIFT");
+            return;
+        }
+    
+        setIsSubmitting(true);
+        setError("");
+    
+        // Retrieve the token from local storage, state, or context
+        const token = localStorage.getItem('token'); // Adjust this line based on where you store the token
+    
         try {
-            // Check that all fields except 'recipientAccountNumber' are verified
-            const fieldsToVerify = Object.entries(verificationStatus)
-                .filter(([field]) => field !== 'recipientAccountNumber')
-                .map(([_, verified]) => verified);
-    
-            if (!fieldsToVerify.every(Boolean)) {
-                const unverifiedFields = Object.entries(verificationStatus)
-                    .filter(([field, verified]) => !verified && field !== 'recipientAccountNumber')
-                    .map(([field]) => field);
-                setError(`Please verify the following fields: ${unverifiedFields.join(', ')}`);
-                return;
-            }
-    
-            // Retrieve the token from local storage or your token storage location
-            const token = localStorage.getItem('token');
-    
-            // Update payment status and submit to SWIFT in one PUT request
-            try {
-                const response = await axios.put(
-                    `http://localhost:5000/api/payments/${transactionId}/submit-to-swift`, // One endpoint for both actions
-                    {}, // No body needed, all handled in backend
-                    {
-                        headers: {
-                            'x-auth-token': token, // Add token in headers
-                        },
-                    }
-                );
-    
-                if (response.status === 200) {
-                    // Navigate to the employee dashboard with a success message
-                    navigate("/employee-dashboard", {
-                        state: { message: "Transaction successfully submitted to SWIFT" },
-                    });
+            const acceptResponse = await axios.put(`http://localhost:5000/api/payments/${transactionId}`, {
+                status: 'Completed'
+            }, {
+                headers: {
+                    'x-auth-token': token
                 }
-            } catch (error) {
-                console.error('Submit to SWIFT Error:', error);
-                setError("Failed to submit transaction to SWIFT");
+            });
+    
+            if (acceptResponse.data) {
+                console.log("Accept response:", acceptResponse.data);
+                navigate("/employee-dashboard", { 
+                    state: { message: "Payment successfully submitted to SWIFT and accepted" }
+                });
+            } else {
+                throw new Error('No response data received');
             }
         } catch (err) {
-            console.error('Submit to SWIFT Error:', err);
-            setError('Failed to submit transaction to SWIFT');
+            console.error("Submit to SWIFT Error:", err);
+    
+            if (err.response) {
+                setError(`Server Error: ${err.response.data.message || 'Failed to submit payment to SWIFT'}`);
+            } else if (err.request) {
+                setError("No response received from server. Please check your connection.");
+            } else {
+                setError("Failed to submit payment to SWIFT. Please try again.");
+            }
+        } finally {
+            setIsSubmitting(false);
         }
     };
     
+
     const rejectTransaction = async () => {
         if (!rejectionReason.trim()) {
             setError("Please provide a reason for rejection");
@@ -97,7 +100,8 @@ const PaymentVerification = () => {
         }
 
         try {
-            const rejectResponse = await axios.put(`http://localhost:5000/api/payments/${transactionId}`, {
+            // Using the transactions endpoint as defined in routes
+            const rejectResponse = await axios.put(`http://localhost:5000/api/transactions/${transactionId}`, {
                 status: 'Rejected',
                 rejectionReason: rejectionReason
             });
@@ -115,8 +119,6 @@ const PaymentVerification = () => {
     if (!transaction) {
         return <div>Loading...</div>;
     }
-
-    const isAllVerified = Object.values(verificationStatus).every(Boolean);
 
     return (
         <div className="container mx-auto p-4">
@@ -164,13 +166,17 @@ const PaymentVerification = () => {
                 </div>
 
                 <div className="flex gap-4 mt-6 pt-6 border-t">
-                <button
-    onClick={submitToSwift}
-    // Temporarily remove the `disabled` attribute to test if the button is disabled
-    className="flex-1 py-2 px-4 rounded bg-blue-500 hover:bg-blue-600 text-white transition-colors"
->
-    {isSubmitting ? 'Processing...' : 'Submit to SWIFT'}
-</button>
+                    <button
+                        onClick={submitToSwift}
+                        disabled={isSubmitting}
+                        className={`flex-1 py-2 px-4 rounded ${
+                            isSubmitting 
+                                ? 'bg-blue-300 cursor-not-allowed' 
+                                : 'bg-blue-500 hover:bg-blue-600'
+                        } text-white transition-colors`}
+                    >
+                        {isSubmitting ? 'Submitting...' : 'Submit to SWIFT'}
+                    </button>
                     <div className="flex-1 flex gap-2">
                         <input
                             type="text"
@@ -181,7 +187,12 @@ const PaymentVerification = () => {
                         />
                         <button
                             onClick={rejectTransaction}
-                            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                            disabled={isSubmitting}
+                            className={`px-4 py-2 ${
+                                isSubmitting 
+                                    ? 'bg-red-300 cursor-not-allowed' 
+                                    : 'bg-red-500 hover:bg-red-600'
+                            } text-white rounded transition-colors`}
                         >
                             Reject
                         </button>
