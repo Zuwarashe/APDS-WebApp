@@ -4,46 +4,51 @@ const PaymentSchema = new mongoose.Schema({
     recipientName: { 
         type: String, 
         required: true, 
-        match: /^[a-zA-Z\s]{1,100}$/ // Only alphabets and spaces, up to 100 characters
+        match: /^[a-zA-Z\s]{1,100}$/
     },
     recipientBank: { 
         type: String, 
         required: true, 
-        match: /^[a-zA-Z\s]{1,100}$/ // Only alphabets and spaces, up to 100 characters
+        match: /^[a-zA-Z\s]{1,100}$/
     },
     recipientAccountNumber: { 
         type: String, 
         required: true, 
-        match: /^\d{10}$/ // Ensures a valid 10-digit account number
+        match: /^\d{10}$/
     },
     amount: { 
         type: Number, 
         required: true, 
-        min: [1, 'Amount must be at least 1'] // The minimum amount allowed for transfer is 1
+        min: [1, 'Amount must be at least 1']
     },
     swiftCode: { 
         type: String, 
         required: true, 
-        match: /^[A-Z0-9]{8,11}$/ // Ensures valid SWIFT code format
+        match: /^[A-Z0-9]{8,11}$/
     },
     userId: { 
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'User', 
         required: true 
-    }, // Link the payment to the user making it
+    },
     paymentDate: { 
         type: Date, 
         default: Date.now 
-    }, // Automatically set the current date for the payment
+    },
     status: { 
         type: String, 
-        enum: ['Pending', 'Completed', 'Failed'], 
+        enum: ['Pending', 'Accepted', 'Rejected'], 
         default: 'Pending' 
-    } // Keep track of the payment status
+    },
+    verifications: {
+        recipientName: { type: Boolean, default: false },
+        recipientBank: { type: Boolean, default: false },
+        recipientAccountNumber: { type: Boolean, default: false },
+        amount: { type: Boolean, default: false },
+        swiftCode: { type: Boolean, default: false }
+    },
+    rejectionReason: { type: String, default: '' }
 });
 
-// Define the model
 const Payment = mongoose.model('Payment', PaymentSchema);
-
-// Export the Payment model
 module.exports = Payment;

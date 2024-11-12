@@ -157,3 +157,68 @@ button:hover {
     background-color: #5a6268;
     border-color: #5a6268;
   }
+
+  .transaction-card {
+    border: 1px solid #ddd;
+    padding: 16px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+}
+
+.transaction-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    gap: 4px; /* Reduces space between label and button */
+}
+
+.btn {
+    padding: 6px 10px;
+    margin-left: 4px;
+}
+
+.btn-verify {
+    background-color: #28a745;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-verify:hover {
+    background-color: #218838;
+}
+
+.btn-view {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-view:hover {
+    background-color: #0056b3;
+}
+
+.btn-reject {
+    background-color: #dc3545;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 4px 8px; /* Smaller size for Reject button */
+    font-size: 0.9em; /* Slightly smaller font size */
+}
+
+.btn-reject:hover {
+    background-color: #c82333;
+}
+
+.rejection-section {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}

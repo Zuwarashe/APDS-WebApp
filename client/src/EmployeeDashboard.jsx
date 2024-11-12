@@ -26,7 +26,7 @@ function EmployeeDashboard() {
     setSelectedTransaction(transaction);
   };
 
- const handleVerifyTransaction = (transactionId) => {
+  const handleVerifyTransaction = (transactionId) => {
     if (!transactionId) {
         console.error("No transaction ID provided");
         return;
@@ -35,7 +35,7 @@ function EmployeeDashboard() {
     navigate('/payment-verification', { 
         state: { transactionId: transactionId.toString() } 
     });
-};
+  };
 
   return (
     <div>
@@ -58,36 +58,35 @@ function EmployeeDashboard() {
             </tr>
           </thead>
           <tbody>
-            {transactions.map((transaction) => (
-              <tr
-                key={transaction._id}
-                onClick={() => handleTransactionClick(transaction)}
-                className={selectedTransaction?._id === transaction._id ? 'selected' : ''} // Highlight selected transaction
-              >
-                <td>{transaction._id}</td>
-                <td>{transaction.recipientName}</td>
-                <td>{transaction.recipientBank}</td>
-                <td>{transaction.recipientAccount}</td>
-                <td>${transaction.amount.toFixed(2)}</td> {/* Format amount */}
-                <td>{transaction.swiftCode}</td>
-                <td>{transaction.status}</td>
-                <td>
-                  {transaction.status === 'Pending' && (
-                    <>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent row click when clicking the button
-                          handleVerifyTransaction(transaction._id); // Navigate to verify
-                        }}
-                      >
-                        Verify
-                      </button>
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
+  {transactions.map((transaction) => (
+    <tr
+      key={transaction._id}
+      onClick={() => handleTransactionClick(transaction)}
+      className={selectedTransaction?._id === transaction._id ? 'selected' : ''}
+    >
+      <td>{transaction._id}</td>
+      <td>{transaction.recipientName}</td>
+      <td>{transaction.recipientBank}</td>
+      <td>{transaction.recipientAccount}</td>
+      <td>${transaction.amount.toFixed(2)}</td>
+      <td>{transaction.swiftCode}</td>
+      <td>{transaction.status}</td>
+      <td>
+        {transaction.status === 'Pending' && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleVerifyTransaction(transaction._id);
+            }}
+          >
+            Verify
+          </button>
+        )}
+      </td>
+    </tr>
+  ))}
+</tbody>
+
         </table>
       </div>
     </div>
